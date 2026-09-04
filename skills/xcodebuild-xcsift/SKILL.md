@@ -1,12 +1,21 @@
 ---
 name: xcodebuild-xcsift
-description: Use when building or testing Xcode/iOS/macOS projects with xcodebuild. Provides standard xcodebuild commands piped through xcsift for JSON-parsable build/test output, avoiding repeated xcsift help lookups.
-compatibility: Requires Xcode command line tools and xcsift installed and available on PATH.
+description: Fallback workflow for Xcode/iOS/macOS builds and tests when Xcode MCP is unavailable or cannot perform the required operation. Runs shell xcodebuild through xcsift with reliable failure propagation and compact output.
+compatibility: Requires Xcode command line tools and xcsift installed and available on PATH. Prefer available Xcode MCP tools before loading this fallback.
 ---
 
 # Xcodebuild with xcsift
 
-Use this skill whenever invoking `xcodebuild` for builds, tests, or verification.
+Fallback workflow for invoking shell `xcodebuild` when Xcode MCP cannot perform the required build or test operation.
+
+## Select the execution route
+
+1. Prefer the relevant Xcode MCP tool for builds, tests, diagnostics, SwiftUI previews, Apple documentation, and Swift snippets when it is available.
+2. Use this shell workflow only when Xcode MCP is unavailable, its connection fails, or it does not expose the required operation.
+3. Treat compilation errors and failing tests returned by Xcode MCP as real results. Diagnose them through Xcode MCP instead of repeating the same operation with shell `xcodebuild`.
+4. Use one route for a verification cycle. Never run Xcode MCP and shell builds/tests concurrently.
+
+Once the shell fallback is necessary, apply the rules and templates below.
 
 ## Core rules
 
