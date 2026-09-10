@@ -39,6 +39,7 @@ A recurring principle is to separate investigation from mutation. For example, `
 |---|---|
 | `analyze` | Read-only investigation and implementation planning before changing code. |
 | `code-review` | Reviews local changes, branches, or GitLab merge requests and reports concrete, verified findings. |
+| `device-interaction` | Verifies interactive Apple-platform app behavior on a simulator or device through project-enabled Xcode MCP tooling. |
 | `git-commit` | Creates structured Git commits from local changes, including staging and commit messages. |
 | `git-redate` | Rewrites author and committer timestamps for selected commits. |
 | `gitlab-glab` | Interacts with GitLab projects, merge requests, issues, pipelines, jobs, releases, and APIs through `glab`. |
@@ -56,7 +57,7 @@ Some skills include supporting references or scripts where a reliable workflow n
 
 The GitLab `code-review` workflow uses the bundled `review-findings-selector` extension to choose which findings to post. Non-trivial reviews can also use the bundled `subagent` extension and `code-review-pass` agent for an isolated independent pass. These resources are versioned with the skills so the complete review workflow can be installed reproducibly.
 
-Machine-managed integrations such as Herdr and separately packaged integrations such as `pi-xcode-mcp` remain outside this repository.
+Machine-managed integrations such as Herdr and separately packaged integrations such as `pi-xcode-mcp` remain outside this repository. The `device-interaction` skill uses `pi-xcode-mcp` only in projects that explicitly enable it.
 
 ## Design principles
 
