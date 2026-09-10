@@ -14,6 +14,7 @@ Create clean, intentional commits directly in the current session. Do not delega
 - Commit only changes that belong to the user's requested scope. If ownership is unclear, ask before staging.
 - Preserve existing staged intent unless the user asks to reorganize it.
 - Keep each commit atomic and coherent. Include tests with the production behavior they verify unless tests are independently meaningful or the user requests a separate commit.
+- Treat broad formatting mixed with logic, dependency updates mixed with unrelated fixes, refactors mixed with new behavior, and unrelated configuration changes as signals to split. Keep them together only when they serve the same indivisible purpose.
 - Split independent features, fixes, refactors, documentation, or build changes when that produces clearer commits; do not split merely by file type or file count.
 - Do not mention AI assistance, agents, generated-by text, or co-authorship.
 - Avoid prefixes such as `feat:`, `fix:`, `chore:`, Jira keys, ticket IDs, or bracketed labels unless explicitly requested.
@@ -78,12 +79,25 @@ Examples:
 
 Add a body only when it provides useful rationale, constraints, or non-obvious behavior.
 
+When the user explicitly requests Conventional Commits or applicable repository instructions require them, use `<type>(<optional-scope>): <description>`. Keep the description imperative and lowercase after the colon. For a breaking change, add `!` before the colon and explain the impact in the body, for example `feat(api)!: change authentication response`.
+
 ### 5. Commit and verify
 
-Create each commit, then inspect the result:
+Create each commit with an interpolation-safe, single-quoted heredoc. Use a delimiter that does not appear in the message:
 
 ```bash
-git commit -m "Descriptive subject"
+git commit -F - <<'EOF'
+Descriptive subject
+
+Optional explanatory body.
+EOF
+```
+
+This prevents `$()`, backticks, variables, and other message text from being evaluated by the shell without creating a shared temporary file. Do not add AI attribution or co-author trailers.
+
+Then inspect the result:
+
+```bash
 git status --short
 git log --oneline -n 5
 ```
