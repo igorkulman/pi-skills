@@ -15,7 +15,11 @@ Inspect unresolved self-authored review threads, compare each concern with the l
 - Mark a thread **Addressed** only when replies or latest code/diff clearly implement the requested behavior, test, migration, localization, or error handling.
 - Mark ambiguous evidence **Uncertain** or **Not addressed** and leave the thread open.
 - Resolve addressed in-scope threads before approving. Never approve while an in-scope resolvable thread remains open.
-- Re-fetch remote thread state after mutations and before approval.
+- Never approve when the MR/PR has zero total in-scope self-authored resolvable threads; that means this reviewer has not reviewed it.
+- Never approve a draft/WIP.
+- Never approve while the latest CI pipeline/check is failing, running, pending, or otherwise incomplete. Passing means `success`, `skipped`, or `manual`; no pipeline/check is not a blocker.
+- Re-fetch remote thread state, draft state, and CI state after mutations and before approval.
+- Approval requires explicit authorization after the approval gate is known. If approval was already explicitly requested in the initial instruction, do not ask redundantly; otherwise show the approval confirmation picker.
 - Do not use ad hoc Python. Prefer `glab`, `gh`, `git`, `jq`, `rg`, `sed`, and `awk`.
 - Do not switch branches or mutate Git state unless explicitly requested and the working tree is safe.
 
@@ -46,25 +50,55 @@ For each open in-scope self-authored thread:
 
 Present the assessment before mutations, including:
 
-- target and in-scope count
+- target, total in-scope resolvable-thread count, and open in-scope count
 - other authors' open resolvable-thread count
+- draft state and latest CI pipeline/check status
 - thread ID, location, concern excerpt, status, evidence, and proposed action
 - remaining blockers and approval recommendation
 - whether resolution/approval is already authorized or still requires a request
 
-If the user already requested resolving addressed self-authored threads and approving when clean, state the planned actions and continue without asking again. Otherwise wait for explicit authorization.
+## Resolution selector
+
+If the user already requested the exact threads to resolve, state the planned resolutions and continue without asking again. Otherwise, immediately after presenting the assessment, call `ask_user_question` with a selector for the individual **Addressed** threads. Do not show a generic action picker and do not merely wait for another command.
+
+The selector must:
+
+- show one selectable option per **Addressed** thread, identified by a concise thread ID, location, and concern excerpt
+- use `multiSelect: true` when there are two or more candidates, so the user can check exactly which threads to resolve and leave the rest unchecked
+- state that only selected threads will be resolved
+- never offer **Not addressed** or **Uncertain** threads as resolution choices
+- treat cancellation or no selection as authorization for no mutations
+
+`ask_user_question` allows at most four options per question and four questions per invocation. Put up to four thread options in each question and group all required questions into one invocation when possible. If there is exactly one candidate, use a single-select question with **Resolve this thread** and **Keep it open**. If there are more candidates than one invocation supports, continue in numbered batches, preserving the thread IDs.
+
+The resolution selector authorizes only the selected resolutions; it does not authorize approval. Threads assessed as addressed but left unchecked remain open and block approval.
+
+If there are no **Addressed** candidates, do not show a resolution selector. Continue to the approval gate only when no open in-scope threads remain.
+
+## Approval gate and confirmation
+
+After resolving selected threads, re-fetch remote thread state, draft state, and latest CI state. Approval is possible only when all of these are true:
+
+- total in-scope self-authored resolvable-thread count is greater than zero
+- open in-scope self-authored resolvable-thread count is zero
+- the MR/PR is not draft/WIP
+- latest CI is `success`, `skipped`, or `manual`; no CI pipeline/check is also allowed
+
+Treat `failed`, `canceled`, `running`, `pending`, `created`, `waiting_for_resource`, `preparing`, and `scheduled` as blocking. If any gate fails, report every blocker and do not offer or perform approval.
+
+When all gates pass and approval was not already explicitly requested, call `ask_user_question` with **Approve** and **Do not approve**. The question must summarize the number of resolved threads, non-draft state, and CI status. Only approve after the user selects **Approve**. If the initial instruction already explicitly requested approval when clean, that authorization remains valid and must not be requested again.
 
 ## Mutation order
 
-When authorized:
+After selector submission or direct authorization:
 
-1. Resolve only in-scope threads classified Addressed.
+1. Resolve only the selected or explicitly requested in-scope threads classified **Addressed**.
 2. Check every API result.
-3. Re-fetch thread state.
-4. Approve only when no in-scope resolvable threads remain and approval was explicitly requested.
-5. Report resolved/open thread IDs, other-author count, approval status, and failures.
-
-Do not approve drafts unless the user explicitly requests approval despite draft state and the platform allows it.
+3. Re-fetch thread, draft, and CI state.
+4. Evaluate every approval gate and report blockers.
+5. If all gates pass, obtain approval authorization unless it was already explicit.
+6. Approve only when authorized and all gates still pass.
+7. Report selected/resolved/open thread IDs, other-author count, draft and CI state, approval status, and failures.
 
 ## Known pitfalls
 

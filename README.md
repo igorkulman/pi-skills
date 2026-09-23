@@ -57,7 +57,7 @@ Some skills include supporting references or scripts where a reliable workflow n
 
 The GitLab `code-review` workflow uses the bundled `review-findings-selector` extension to choose which findings to post. Non-trivial reviews can also use the bundled `subagent` extension and `code-review-pass` agent for an isolated independent pass. These resources are versioned with the skills so the complete review workflow can be installed reproducibly.
 
-Machine-managed integrations such as Herdr and separately packaged integrations such as `pi-xcode-mcp` remain outside this repository. The `device-interaction` skill uses `pi-xcode-mcp` only in projects that explicitly enable it.
+Machine-managed integrations such as Herdr and separately packaged integrations such as `pi-xcode-mcp` remain outside this repository. The `device-interaction` skill requires `pi-xcode-mcp` in projects that explicitly enable it, while `swift-concurrency` uses its documentation, snippet, build, test, and diagnostic tools when available.
 
 ## Design principles
 

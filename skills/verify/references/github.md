@@ -9,7 +9,7 @@ Extract `<OWNER>`, `<REPO>`, and `<PR_NUMBER>` from `https://github.com/<OWNER>/
 ```bash
 command -v gh
 gh auth status
-gh pr view <PR_NUMBER> --repo <OWNER>/<REPO> --json number,title,url,state,isDraft,headRefOid,baseRefName,headRefName,reviewDecision,comments,reviews,files > /tmp/pi_verify_pr_<PR_NUMBER>.json
+gh pr view <PR_NUMBER> --repo <OWNER>/<REPO> --json number,title,url,state,isDraft,headRefOid,baseRefName,headRefName,reviewDecision,statusCheckRollup,comments,reviews,files > /tmp/pi_verify_pr_<PR_NUMBER>.json
 gh pr diff <PR_NUMBER> --repo <OWNER>/<REPO> > /tmp/pi_verify_pr_<PR_NUMBER>_diff.txt
 ```
 
@@ -57,9 +57,11 @@ In-scope threads satisfy:
 - `isResolved == false`
 - the first/original review comment author matches the authenticated login
 
+Count total in-scope self-authored resolvable threads, including resolved threads. If that total is zero, this reviewer has not reviewed the PR; do not approve it.
+
 Count other authors' unresolved threads for reporting only. Do not assess or resolve them unless the user explicitly changes scope.
 
-For each in-scope thread, apply the shared Addressed / Not addressed / Uncertain contract using all replies, the latest PR diff, and surrounding code as needed. Present the shared assessment and authorization gate before mutation.
+For each open in-scope thread, apply the shared Addressed / Not addressed / Uncertain contract using all replies, the latest PR diff, and surrounding code as needed. Present the shared assessment together with draft and check status, then show the shared per-thread resolution selector unless the exact resolutions were already authorized.
 
 ## 3. Resolve authorized addressed threads
 
@@ -71,14 +73,16 @@ Resolve only Addressed threads whose original comment belongs to the authenticat
 
 ## 4. Re-check and optionally approve
 
-Re-fetch review threads. If no in-scope self-authored threads remain and approval was explicitly requested:
+Re-fetch review threads and PR metadata/check status. Apply every shared approval gate: total in-scope thread count must be greater than zero, open in-scope count must be zero, the PR must not be a draft, and checks must be passing or absent.
+
+If all gates pass, obtain explicit approval authorization with `ask_user_question` unless approval was already explicitly requested. Only then run:
 
 ```bash
 gh pr review <PR_NUMBER> --repo <OWNER>/<REPO> --approve
 ```
 
-Do not approve when in-scope threads remain. Do not approve a draft unless the user explicitly requested approval despite draft state and GitHub allows it.
+Otherwise do not approve and report every blocker.
 
 ## 5. Report
 
-Summarize initial/resolved/remaining in-scope thread IDs, other-author unresolved count, approval status, pagination limits, and failures.
+Summarize initial total/open in-scope counts, selected/resolved/remaining thread IDs, other-author unresolved count, draft and check state, approval status, pagination limits, and failures.

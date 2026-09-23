@@ -12,6 +12,7 @@ glab auth status
 glab mr view <MR_IID> --output json > /tmp/pi_verify_mr_<MR_IID>.json
 glab mr diff <MR_IID> --color=never > /tmp/pi_verify_mr_<MR_IID>_diff.txt
 glab api --paginate "projects/:id/merge_requests/<MR_IID>/discussions?sort=asc&per_page=100" > /tmp/pi_verify_mr_<MR_IID>_discussions.json
+glab api "projects/:id/merge_requests/<MR_IID>/pipelines?per_page=1" > /tmp/pi_verify_mr_<MR_IID>_pipelines.json
 ```
 
 If `glab mr view` resolves a project/MR different from the supplied URL, stop and ask the user to run from the correct repository.
@@ -20,11 +21,14 @@ Determine the authenticated username from `glab auth status` and use it as `<SEL
 
 ## 2. Identify scope
 
-Open self-authored resolvable discussions:
+Total and open self-authored resolvable discussions:
 
 ```bash
+jq --arg self "<SELF_USERNAME>" '[.[] | select(.resolvable == true and (.notes[0].author.username == $self))] | length' /tmp/pi_verify_mr_<MR_IID>_discussions.json
 jq --arg self "<SELF_USERNAME>" '[.[] | select(.resolvable == true and (.resolved != true) and (.notes[0].author.username == $self))]' /tmp/pi_verify_mr_<MR_IID>_discussions.json
 ```
+
+If the total count is zero, this reviewer has not reviewed the MR. Do not approve it.
 
 Other authors' open resolvable count:
 
@@ -56,8 +60,11 @@ Present:
 ```markdown
 ## Verification scope
 - Target: GitLab MR !<MR_IID>
+- Total in-scope resolvable threads created by me: <count>
 - Open in-scope resolvable threads created by me: <count>
 - Other authors' open resolvable threads (reported only): <count>
+- Draft: <true/false>
+- Latest pipeline: <status/no pipeline>
 
 ## Thread assessment
 1. `DISCUSSION_ID` — `path:line` — <concern excerpt>
@@ -67,8 +74,8 @@ Present:
 
 ## Approval gate
 - Remaining blockers if proposed actions are applied: <none/list>
-- Recommendation: Approve after resolving addressed threads / Do not approve
-- Authorization: Already requested / Ask to resolve and approve
+- Recommendation: Eligible for approval confirmation after resolving addressed threads / Do not approve
+- Resolution authorization: Already requested / Show per-thread resolution selector
 ```
 
 Follow the shared authorization gate before continuing.
@@ -85,17 +92,20 @@ Resolve only discussions whose first note belongs to the authenticated user and 
 
 ```bash
 glab api --paginate "projects/:id/merge_requests/<MR_IID>/discussions?sort=asc&per_page=100" > /tmp/pi_verify_mr_<MR_IID>_discussions_after.json
+glab mr view <MR_IID> --output json > /tmp/pi_verify_mr_<MR_IID>_after.json
+glab api "projects/:id/merge_requests/<MR_IID>/pipelines?per_page=1" > /tmp/pi_verify_mr_<MR_IID>_pipelines_after.json
+jq --arg self "<SELF_USERNAME>" '[.[] | select(.resolvable == true and (.notes[0].author.username == $self))] | length' /tmp/pi_verify_mr_<MR_IID>_discussions_after.json
 jq --arg self "<SELF_USERNAME>" '[.[] | select(.resolvable == true and (.resolved != true) and (.notes[0].author.username == $self))] | length' /tmp/pi_verify_mr_<MR_IID>_discussions_after.json
 ```
 
-If the count is zero and approval was explicitly requested:
+Apply every shared approval gate. If all pass, obtain explicit approval authorization with `ask_user_question` unless approval was already explicitly requested. Only then run:
 
 ```bash
 glab mr approve <MR_IID>
 ```
 
-Otherwise do not approve. Report remaining in-scope discussion IDs/reasons and the count of other authors' open resolvable discussions.
+Otherwise do not approve. Report every blocker, remaining in-scope discussion ID/reason, and the count of other authors' open resolvable discussions.
 
 ## 6. Report
 
-Summarize initial in-scope count, resolved/open thread IDs with concise excerpts, other-author count, approval status, and API failures.
+Summarize initial total/open in-scope counts, selected/resolved/open thread IDs with concise excerpts, other-author count, draft and pipeline state, approval status, and API failures.
