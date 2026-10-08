@@ -40,6 +40,7 @@ A recurring principle is to separate investigation from mutation. For example, `
 | `analyze` | Read-only investigation and implementation planning before changing code. |
 | `code-review` | Reviews local changes, branches, or GitLab merge requests and reports concrete, verified findings. |
 | `device-interaction` | Verifies interactive Apple-platform app behavior on a simulator or device through project-enabled Xcode MCP tooling. |
+| `figma` | Reads designs and translates them into project-native code through project-enabled native Figma MCP, with OAuth and explicit authorization for Figma writes. |
 | `git-commit` | Creates structured Git commits from local changes, including staging and commit messages. |
 | `git-redate` | Rewrites author and committer timestamps for selected commits. |
 | `gitlab-glab` | Interacts with GitLab projects, merge requests, issues, pipelines, jobs, releases, and APIs through `glab`. |
@@ -56,6 +57,8 @@ Some skills include supporting references or scripts where a reliable workflow n
 ## Supporting extensions and agents
 
 The GitLab `code-review` workflow uses the bundled `review-findings-selector` extension to choose which findings to post. Non-trivial reviews can also use the bundled `subagent` extension and `code-review-pass` agent for an isolated independent pass. These resources are versioned with the skills so the complete review workflow can be installed reproducibly.
+
+The `figma` skill uses Pi 0.99.2+ built-in MCP support, not a Figma extension package. Configure the remote server only in projects that need it, using `oauth.clientName: "Codex"` and `codemode` exposure; the skill loads the server's current design-to-code guidance through MCP resources.
 
 Machine-managed integrations such as Herdr and separately packaged integrations such as `pi-xcode-mcp` remain outside this repository. The `device-interaction` skill requires `pi-xcode-mcp` in projects that explicitly enable it, while `swift-concurrency` uses its documentation, snippet, build, test, and diagnostic tools when available.
 

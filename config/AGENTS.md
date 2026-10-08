@@ -19,6 +19,7 @@
 - For GitLab access, use `gitlab-glab` and the authenticated `glab` CLI.
 - For MR reviewer-comment work, use `mr-comment-resolution`.
 - For commits, use `git-commit`.
+- For Figma links, design inspection, implementation from designs, and explicitly requested Figma edits, use `figma` with the project-enabled native Figma MCP. Local implementation does not authorize Figma writes.
 - For Xcode-specific builds, tests, diagnostics, SwiftUI previews, Apple documentation, and Swift snippets, prefer the available Xcode MCP tools.
 - Fall back to shell `xcodebuild` only when Xcode MCP is unavailable or does not expose the required operation. A real build or test failure reported by Xcode MCP is not a reason to rerun the same check through the shell, and the two routes must not run concurrently.
 - When invoking shell `xcodebuild`, use `xcodebuild-xcsift` and pipe output through `xcsift`.
