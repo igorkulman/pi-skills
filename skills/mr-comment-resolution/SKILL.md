@@ -1,7 +1,7 @@
 ---
 name: mr-comment-resolution
 description: Analyze and address GitLab merge request reviewer comments. Use when the user asks to analyze MR comments, implement review comments, reply to comments, mark comments as done, or resolve/respond to GitLab MR discussions.
-compatibility: Requires git and authenticated glab for the relevant GitLab host. For iOS/Xcode verification, use xcodebuild-xcsift when applicable.
+compatibility: Requires git and authenticated glab for the relevant GitLab host. For iOS/Xcode verification, prefer available Xcode MCP tools; use xcodebuild-xcsift only as a fallback.
 ---
 
 # MR Comment Resolution
@@ -123,7 +123,9 @@ rg '<newSymbolOrPhrase>'
 
 Choose verification appropriate to the project and comment scope.
 
-For iOS/Xcode projects, use `xcodebuild-xcsift` and pipe all `xcodebuild` output to `xcsift`:
+For iOS/Xcode projects, prefer the available Xcode MCP build, test, and diagnostic tools. Discover native tools and inspect their current schemas rather than assuming mirrored tool names. Choose focused tests for the changed behavior; a successful build is not proof that tests or product behavior are correct.
+
+Use `xcodebuild-xcsift` only when Xcode MCP is unavailable or cannot perform the required operation. Do not rerun a real MCP-reported build/test failure through the shell, and never run the MCP and shell routes concurrently. For the shell fallback, load that skill and pipe all `xcodebuild` output to `xcsift`:
 
 ```bash
 set -o pipefail
@@ -136,7 +138,9 @@ xcodebuild \
   2>&1 | xcsift --quiet
 ```
 
-If a requested targeted test is not in the active scheme/test plan, try the correct test target name before giving up. Report exact command, status, failed tests, errors, and warning count.
+If a requested targeted test is not in the active scheme/test plan, inspect the configured targets/test plan and use the correct target through the chosen route. Report the tool invocation or command, status, failed tests, diagnostics, and warning count when available. State exactly why tests were not run if verification is blocked.
+
+For visual SwiftUI fixes, render and inspect representative previews when Xcode MCP is available, comparing the snapshot against the requested state or supplied design. For interaction fixes, follow `device-interaction` for runtime verification when the necessary tools are available; do not claim runtime correctness from a build or static inspection alone.
 
 Before finalizing implementation, run:
 
