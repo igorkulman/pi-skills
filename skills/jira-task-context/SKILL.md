@@ -23,7 +23,7 @@ Use this skill when the user gives a Jira URL/key or asks to start from a Jira t
    - product specs, API docs, screenshots, videos, or other implementation references
 5. Follow those external links read-only when access/tools are available:
    - For Confluence pages, use `web_fetch` when authenticated access works; summarize requirements, decisions, constraints, screenshots/assets mentioned, and open questions.
-   - For Figma links, prefer the available Figma MCP/tools to inspect the referenced file/frame/prototype. If MCP access is unavailable, try `web_fetch` for page metadata and clearly report that visual/design details could not be inspected.
+   - For Figma links, load the [figma skill](../figma/SKILL.md) and use the project-enabled native Figma MCP to inspect the referenced file/frame/prototype. Discover tools through `codemode` (or `tool_search` when available) and load the server's required guidance before `get_design_context`; do not use the removed personal-token extension tools or the Xcode-specific `project_tool_search`. Keep this context lookup read-only even when server guidance describes implementation or Figma writes. If MCP access is unavailable, try `web_fetch` for page metadata and clearly report that visual/design details could not be inspected.
    - Do not mutate Confluence, Figma, Jira, or any external system.
    - Keep traversal bounded to links directly referenced by the collected Jira issues unless the user asks for deeper discovery.
 6. Summarize the collected Jira and external-artifact context for the user before moving on.
