@@ -3,6 +3,7 @@
  */
 
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import { CONFIG_DIR_NAME, getAgentDir, parseFrontmatter } from "@earendil-works/pi-coding-agent";
 
@@ -13,6 +14,7 @@ export interface AgentConfig {
 	description: string;
 	tools?: string[];
 	model?: string;
+	providerExtensions?: string[];
 	systemPrompt: string;
 	source: "user" | "project";
 	filePath: string;
@@ -28,6 +30,7 @@ type AgentFrontmatter = {
 	description?: unknown;
 	tools?: unknown;
 	model?: unknown;
+	providerExtensions?: unknown;
 };
 
 function parseToolList(value: unknown): string[] | undefined {
@@ -76,6 +79,9 @@ function loadAgentsFromDir(dir: string, source: "user" | "project"): AgentConfig
 			description: frontmatter.description,
 			tools: parseToolList(frontmatter.tools),
 			model: typeof frontmatter.model === "string" ? frontmatter.model : undefined,
+			providerExtensions: parseToolList(frontmatter.providerExtensions)?.map((extension) =>
+				path.resolve(dir, extension.startsWith("~/") ? path.join(os.homedir(), extension.slice(2)) : extension),
+			),
 			systemPrompt: body,
 			source,
 			filePath,

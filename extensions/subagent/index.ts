@@ -29,6 +29,7 @@ import {
 import { Container, Markdown, Spacer, Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 import { type AgentConfig, type AgentScope, discoverAgents } from "./agents.ts";
+import { getProviderExtensions, sumUsage } from "./compatibility.ts";
 
 const MAX_PARALLEL_TASKS = 8;
 const MAX_CONCURRENCY = 4;
@@ -267,6 +268,7 @@ type OnUpdateCallback = (partial: AgentToolResult<SubagentDetails>) => void;
 interface DispatchDefaults {
 	model?: string;
 	thinkingLevel?: ThinkingLevel;
+	providerExtensions: string[];
 }
 
 async function runSingleAgent(
@@ -303,10 +305,14 @@ async function runSingleAgent(
 		"-p",
 		"--no-session",
 		"--no-extensions",
+		"--no-mcp",
 		"--no-skills",
 		"--no-prompt-templates",
 		"--no-themes",
 	];
+	for (const extension of new Set([...dispatchDefaults.providerExtensions, ...(agent.providerExtensions ?? [])])) {
+		args.push("--extension", extension);
+	}
 	const inheritsDispatchConfig = !agent.model;
 	const model = agent.model ?? dispatchDefaults.model;
 	if (model) args.push("--model", model);
@@ -416,7 +422,8 @@ async function runSingleAgent(
 				resolve(code ?? 0);
 			});
 
-			proc.on("error", () => {
+			proc.on("error", (error) => {
+				currentResult.errorMessage = error.message;
 				resolve(1);
 			});
 
@@ -434,7 +441,10 @@ async function runSingleAgent(
 		});
 
 		currentResult.exitCode = exitCode;
-		if (wasAborted) throw new Error("Subagent was aborted");
+		if (wasAborted) {
+			currentResult.stopReason = "aborted";
+			currentResult.errorMessage = "Subagent was aborted";
+		}
 		return currentResult;
 	} finally {
 		if (tmpPromptPath)
@@ -498,6 +508,7 @@ export default function (pi: ExtensionAPI) {
 			const dispatchDefaults: DispatchDefaults = {
 				model: ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : undefined,
 				thinkingLevel: ctx.thinkingLevel,
+				providerExtensions: getProviderExtensions(pi.getCommands()),
 			};
 			const discovery = discoverAgents(ctx.cwd, agentScope);
 			const agents = discovery.agents;
@@ -598,6 +609,7 @@ export default function (pi: ExtensionAPI) {
 						return {
 							content: [{ type: "text", text: `Chain stopped at step ${i + 1} (${step.agent}): ${errorMsg}` }],
 							details: makeDetails("chain")(results),
+							usage: sumUsage(results.flatMap((r) => r.messages)),
 							isError: true,
 						};
 					}
@@ -606,6 +618,7 @@ export default function (pi: ExtensionAPI) {
 				return {
 					content: [{ type: "text", text: getFinalOutput(results[results.length - 1].messages) || "(no output)" }],
 					details: makeDetails("chain")(results),
+					usage: sumUsage(results.flatMap((r) => r.messages)),
 				};
 			}
 
@@ -690,6 +703,8 @@ export default function (pi: ExtensionAPI) {
 						},
 					],
 					details: makeDetails("parallel")(results),
+					usage: sumUsage(results.flatMap((r) => r.messages)),
+					isError: successCount !== results.length,
 				};
 			}
 
@@ -712,12 +727,14 @@ export default function (pi: ExtensionAPI) {
 					return {
 						content: [{ type: "text", text: `Agent ${result.stopReason || "failed"}: ${errorMsg}` }],
 						details: makeDetails("single")([result]),
+						usage: sumUsage(result.messages),
 						isError: true,
 					};
 				}
 				return {
 					content: [{ type: "text", text: getFinalOutput(result.messages) || "(no output)" }],
 					details: makeDetails("single")([result]),
+					usage: sumUsage(result.messages),
 				};
 			}
 
