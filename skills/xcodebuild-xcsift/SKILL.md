@@ -30,7 +30,7 @@ Once the shell fallback is necessary, apply the rules and templates below.
 - Use project-local instructions first for workspace/project, scheme, destination, and test plan names.
 - Prefer `-workspace <Name>.xcworkspace` whenever an `.xcworkspace` exists. Use `-project <Name>.xcodeproj` only when no workspace is available or project-local instructions explicitly require it.
 - If multiple workspaces are available and project-local instructions do not identify the intended one, ask before running `xcodebuild`.
-- Keep build/test commands read-only unless the user explicitly requests a mutating action.
+- Build/test verification may create derived artifacts, but must not edit source, schemes, project settings, or system permissions unless that change is authorized.
 
 ## Common templates
 
@@ -71,7 +71,7 @@ set -o pipefail
 xcodebuild \
   -workspace <WorkspaceName>.xcworkspace \
   -scheme "<Scheme Name>" \
-  -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
+  -destination 'platform=iOS Simulator,name=<Simulator Name>' \
   test \
   2>&1 | xcsift --quiet
 ```
@@ -97,20 +97,6 @@ xcodebuild ... 2>&1 | xcsift --Werror
 ```bash
 set -o pipefail
 xcodebuild ... 2>&1 | xcsift --format toon --quiet
-```
-
-## Evenflo iOS default
-
-When working in the Evenflo iOS repository and no more specific project instructions override it, first check whether an `.xcworkspace` exists. If it does, use that workspace with the `Debug - Evenflo` scheme. If no workspace exists, use:
-
-```bash
-set -o pipefail
-xcodebuild \
-  -project SensorSafe.xcodeproj \
-  -scheme "Debug - Evenflo" \
-  -destination 'generic/platform=iOS Simulator' \
-  build \
-  2>&1 | xcsift --quiet
 ```
 
 ## Reporting results
