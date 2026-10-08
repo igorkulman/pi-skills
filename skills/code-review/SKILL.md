@@ -51,7 +51,8 @@ Do not load GitLab or posting instructions during an ordinary local review.
 
 For GitLab findings:
 
-- Immediately call `review_findings_selector` after presenting all reportable findings unless the user already explicitly requested posting every reportable finding in the same request.
+- Immediately call `review_findings_selector` directly after presenting all reportable findings unless the user already explicitly requested posting every reportable finding in the same request. It is model-only, not callable from codemode.
+- A `needs_input` result means approval is still pending: ask for the desired IDs rather than treating it as cancellation or permission. `cancelled`, `empty`, or an empty selection authorizes no posting.
 - Post only selected findings, or all reportable findings when that exact action was directly authorized.
 - Never duplicate an equivalent unresolved discussion.
 
