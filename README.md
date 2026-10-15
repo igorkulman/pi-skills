@@ -38,6 +38,7 @@ A recurring principle is to separate investigation from mutation. For example, `
 | Skill | Purpose |
 |---|---|
 | `analyze` | Read-only investigation and implementation planning before changing code. |
+| `app-resizability` | Audits or fixes context-sensitive Apple layouts, scene lifecycle, and safe-area behavior within the requested scope. |
 | `code-review` | Reviews local changes, branches, or GitLab merge requests and reports concrete, verified findings. |
 | `device-interaction` | Verifies interactive Apple-platform app behavior on a simulator or device through project-enabled Xcode MCP tooling. |
 | `figma` | Reads designs and translates them into project-native code through project-enabled native Figma MCP, with OAuth and explicit authorization for Figma writes. |
@@ -48,6 +49,7 @@ A recurring principle is to separate investigation from mutation. For example, `
 | `jira-update` | Updates Jira tickets, descriptions, fields, and comments. |
 | `mr-comment-resolution` | Analyzes and addresses GitLab merge-request feedback and resolves completed discussions. |
 | `resolve-merge-conflicts` | Resolves all conflicts in an ongoing rebase or merge and automatically continues it to completion. |
+| `swift-concurrency` | Guides Swift concurrency implementation, diagnostics, migration, and testing using the target's actual isolation and compiler settings. |
 | `tdd` | Implements an analyzed task through observable behavior, one red-green-refactor slice at a time. |
 | `verify` | Re-checks review findings against updated code and verifies whether requested changes were addressed. |
 | `xcodebuild-xcsift` | Falls back to shell `xcodebuild` with structured `xcsift` output when Xcode MCP cannot perform the operation. |
@@ -56,7 +58,7 @@ Some skills include supporting references or scripts where a reliable workflow n
 
 ## Supporting extensions and agents
 
-The GitLab `code-review` workflow uses the bundled `review-findings-selector` extension to choose which findings to post. Non-trivial reviews can also use the bundled `subagent` extension and `code-review-pass` agent for an isolated independent pass. These resources are versioned with the skills so the complete review workflow can be installed reproducibly.
+The GitLab `code-review` workflow uses the bundled model-only `review-findings-selector` extension to choose which findings to post: an arbitrary-count checkbox TUI, an ID-based RPC input path, or an explicit pending-input result without UI. It never posts comments itself. Non-trivial reviews can also use the bundled `subagent` extension and `code-review-pass` agent for an isolated independent pass. These resources are versioned with the skills so the complete review workflow can be installed reproducibly.
 
 The `figma` skill uses Pi 0.99.2+ built-in MCP support, not a Figma extension package. Configure the remote server only in projects that need it, using `oauth.clientName: "Codex"` and `codemode` exposure; the skill loads the server's current design-to-code guidance through MCP resources.
 
@@ -92,6 +94,10 @@ Run `/reload` in an existing Pi session after changing the links, skills, or glo
 ## Structure
 
 Global Pi workflow and safety instructions live in `config/AGENTS.md`. Reusable Pi tools live in `extensions/`, and specialized subagent prompts live in `agents/`. Each skill keeps its controller in `SKILL.md`; more involved skills may route to additional reference documents or bundled helper scripts instead of putting every detail into the main skill definition.
+
+## Verification
+
+See the [Pi upgrade checklist](docs/pi-upgrade-checklist.md) for offline regressions, opt-in live provider/codemode/Xcode probes, Apple export provenance, and verification boundaries. Live checks are separate from app builds, tests, previews, and device behavior.
 
 ## License
 

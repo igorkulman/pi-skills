@@ -1,16 +1,18 @@
 ---
 name: device-interaction
 description: Verify interactive Apple-platform app behavior on a simulator or device through Xcode MCP screenshots, UI hierarchy, and synthesized input. Use when the user asks to test or check behavior on a device/simulator, after implementing UI interaction changes that need runtime verification, or when debugging touch, focus, keyboard, orientation, or other input behavior. Do not use for build-only checks, unit tests, code review, static UI inspection, or SwiftUI preview-only verification.
-compatibility: Requires the current project to enable pi-xcode-mcp and Xcode MCP to advertise its DeviceInteraction and DeviceEventSynthesize tools.
+compatibility: Requires project-enabled Xcode MCP advertising device-session and synthesis tools, and Pi's native MCP discovery through codemode or tool_search.
+metadata:
+  upstream: "Xcode 27.1 (27A9275)"
 ---
 
 # Device Interaction
 
-Verify runtime UI behavior through Xcode MCP on an Apple device or simulator.
+Verify runtime UI behavior through Xcode MCP on an Apple device or simulator. Adapted from a fresh Xcode 27.1 export; see [EXPORT.md](EXPORT.md) for provenance and the untouched Apple skill. This Pi workflow replaces Apple's generic Agent-tool delegation and keeps its device interaction guidance.
 
 ## Execution boundary
 
-Perform this workflow in the main agent. Do not delegate it to the isolated Pi subagent extension: delegated agents run with extensions disabled and therefore do not inherit the project's Xcode MCP tools.
+Perform this workflow in the main agent. Do not delegate it to the isolated Pi subagent extension: children load only opted-in provider extensions, disable MCP, and do not inherit the project's device tools.
 
 Use this skill only for behavior that benefits from launching and interacting with the app. Prefer a SwiftUI preview for a purely visual, non-interactive check when a representative preview exists.
 
@@ -18,34 +20,66 @@ If the user requested only verification, remain read-only and report defects rat
 
 ## Required tools
 
-Use these mirrored Pi tools when Xcode MCP advertises them:
+Discover the project's native MCP tools, then inspect their current argument schemas before calling them. With `pi-xcode-mcp`, native names use `mcp__xcode__<operation>` and are callable through `codemode` even when absent from direct tool declarations. Do not use legacy mirrored aliases or assume a fixed package-maintained tool set.
 
-- `xcode_device_interaction_start_workspace_session`
-- `xcode_device_interaction_start_session`
-- `xcode_device_interaction_install_and_run`
-- `xcode_device_event_synthesize`
-- `xcode_device_interaction_end_session`
+Discover and describe the relevant tools in a read-only codemode script:
 
-If the project exposes `xcode_mcp_connect` but the device tools are not yet present, connect once so Pi can discover and mirror Xcode's tools. If the tools remain unavailable, report that the project-local Xcode MCP integration or current Xcode version does not expose device interaction. Do not substitute a shell build, unit tests, or a preview and claim that interactive device behavior was verified.
+```js
+const deviceTools = ALL_TOOLS.filter(({ name }) =>
+  name.startsWith("mcp__xcode__") && /DeviceInteraction|DeviceEventSynthesize/.test(name)
+);
+text(deviceTools);
+for (const { name } of deviceTools) text(await describeTool(name));
+```
 
-Follow the schemas advertised by the available tools. The names above correspond to Xcode MCP's `DeviceInteractionStartWorkspaceSession`, `DeviceInteractionStartSession`, `DeviceInteractionInstallAndRun`, `DeviceEventSynthesize`, and `DeviceInteractionEndSession` operations.
+Look for these advertised operations:
+
+- `DeviceInteractionStartWorkspaceSession`
+- `DeviceInteractionStartSession`
+- `DeviceInteractionInstallAndRun`
+- `DeviceInteractionSynthesize` (or `DeviceEventSynthesize` when that is the advertised name)
+- `DeviceInteractionEndSession`
+
+The live Xcode 27.1 probe advertised `DeviceInteractionSynthesize`, despite the exported skill naming `DeviceEventSynthesize`. Select the operation actually present, inspect its schema, and use its returned session key and current parameter names; do not require both aliases.
+
+If codemode is unavailable but `tool_search` exists, discover and load the native tools there and inspect their returned schemas. If discovery is empty or calls report disconnection, ask the user to inspect the project's `xcode` server in `/mcp` and reconnect it there if necessary. Do not invent a connection tool, enable Xcode globally, start a service, or change system permissions as a substitute.
+
+If required tools remain unavailable, report that project-local Xcode MCP or the current Xcode version does not expose the necessary device operations. Do not substitute a shell build, unit tests, or a preview and claim interactive device behavior was verified.
+
+## Screenshots through codemode
+
+A script's output is all the model sees. Calling a tool without forwarding its content does not expose its screenshot for visual inspection. After a native MCP call, forward image blocks with `image()` and text blocks with `text()`. Check `isError` and the operation's returned status/diagnostics; treat reported build, launch, or interaction failures as failures even if transport succeeded.
+
+This helper handles an MCP `CallToolResult` returned by a preceding native tool call:
+
+```js
+function showMcpResult(result) {
+  for (const block of result.content ?? []) {
+    if (block.type === "image") image(block);
+    else if (block.type === "text") text(block.text);
+  }
+  if (result.isError) throw new Error("Xcode MCP reported an error; inspect the forwarded diagnostics.");
+}
+```
+
+Call `showMcpResult(result)` in the same script that receives the result. Inspect `structuredContent` when it supplies session identifiers, paths, or status not included in the text blocks, forwarding only the relevant fields. Never print base64 image data as text. If Xcode returns a screenshot path instead of an image block, read that path with the available `read` tool; inside codemode, pass the returned image block to `image()`. Read the hierarchy path separately. Do not claim visual inspection from a path, thumbnail, or unforwarded result.
 
 ## Session lifecycle
 
 For an app in the current workspace:
 
 ```text
-xcode_device_interaction_start_workspace_session
-  -> xcode_device_interaction_install_and_run
-  -> xcode_device_event_synthesize (capture/interact repeatedly)
-  -> xcode_device_interaction_end_session
+DeviceInteractionStartWorkspaceSession
+  -> DeviceInteractionInstallAndRun
+  -> DeviceInteractionSynthesize / DeviceEventSynthesize (whichever is advertised)
+  -> DeviceInteractionEndSession
 ```
 
-For an already-installed app that does not need a workspace build, use `xcode_device_interaction_start_session` instead.
+These are operation names; call the discovered native identifiers using their inspected schemas. For an already-installed app that does not need a workspace build, use `DeviceInteractionStartSession` instead.
 
 Rules:
 
-1. Start a workspace-backed session early when verifying an app being built. `install_and_run` requires that session and includes the build.
+1. Start a workspace-backed session early when verifying an app being built. `DeviceInteractionInstallAndRun` requires that session and includes the build.
 2. Pass a device identifier when the target is known. Omit it to use the current destination. When discovery is needed and the tool schema supports it, pass an empty device identifier to list available targets.
 3. Retain the returned session identifier and use it for every subsequent operation.
 4. End the session in cleanup even when verification fails. Open sessions are resource-heavy.
@@ -53,7 +87,7 @@ Rules:
 
 ### One-run launch configuration
 
-`xcode_device_interaction_install_and_run` may support:
+`DeviceInteractionInstallAndRun` may support the following parameters; verify them in the advertised schema:
 
 - `commandLineArguments`: arguments for this launch. Include `$(inherited)` to preserve scheme arguments, for example `["$(inherited)", "--reset-state"]`.
 - `environmentVariables`: values for this launch. Include `"$(inherited)": ""` to preserve scheme variables, for example `{"$(inherited)": "", "DEBUG_MODE": "1"}`.
@@ -63,8 +97,8 @@ Prefer these one-run parameters over editing the Xcode scheme. Omit them to leav
 ## Standard verification workflow
 
 1. Install and launch the app when using a workspace-backed session.
-2. Capture the initial state with `xcode_device_event_synthesize` and no interaction command.
-3. Inspect both the screenshot and UI hierarchy. If the tool returns file paths, read the hierarchy and full-size screenshot when needed.
+2. Capture the initial state with the discovered synthesis tool using an empty interaction command when its schema permits.
+3. Inspect both the screenshot and UI hierarchy, forwarding image content when using codemode. If the tool returns file paths, read the hierarchy and full-size screenshot when needed.
 4. Confirm the app has passed its launch screen and meaningful UI elements are present before interacting.
 5. Locate the target in the hierarchy and use its calculated `hitPoint`.
 6. Perform one interaction or a short intentional command chain.
@@ -97,11 +131,11 @@ Elements marked `isRemoteLeafPlaceholder` do not expose their children. Screensh
 
 When overlapping windows belong to different applications, hierarchy lines may include `activationBundleId`.
 
-Before interacting with such an element, activate its application by passing that bundle identifier to `xcode_device_event_synthesize`. Application activation is expensive, so do it only when required.
+Before interacting with such an element, activate its application by passing that bundle identifier to the discovered synthesis tool when its schema supports `activationBundleId`. Application activation is expensive, so do it only when required.
 
 ## Interaction command syntax
 
-The `interactionCommand` accepted by `xcode_device_event_synthesize` supports:
+Xcode 27.1 exports the following `interactionCommand` syntax for the device synthesis operation. Follow the current advertised schema and report unsupported commands rather than assuming other Xcode versions match:
 
 | Command | Action |
 |---|---|
