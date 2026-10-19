@@ -29,7 +29,7 @@ mr-comment-resolution
     git-commit
 ```
 
-Not every task uses every step. The skills are deliberately independent so the agent can load only the workflow and context relevant to the current job. `resolve-merge-conflicts` is a standalone recovery path for an ongoing rebase or merge rather than a step in the main flow.
+Not every task uses every step. The skills are deliberately composable so the agent can load only the workflow and context relevant to the current job. `pragmatic-testing` supplies shared test-quality checks for both TDD and normal implementation: name the realistic bug a test catches, use an independent expectation, and exercise real production behavior. `resolve-merge-conflicts` is a standalone recovery path for an ongoing rebase or merge rather than a step in the main flow.
 
 A recurring principle is to separate investigation from mutation. For example, `analyze` is read-only and produces an evidence-based implementation plan before changes are made, while review and verification workflows default to read-only until an external action is explicitly requested.
 
@@ -48,6 +48,7 @@ A recurring principle is to separate investigation from mutation. For example, `
 | `jira-task-context` | Builds development context from Jira issues, linked issues, and referenced documentation. |
 | `jira-update` | Updates Jira tickets, descriptions, fields, and comments. |
 | `mr-comment-resolution` | Analyzes and addresses GitLab merge-request feedback and resolves completed discussions. |
+| `pragmatic-testing` | Guides meaningful regression tests, test doubles, selective mutation checks, and evidence-based test pruning across workflows. |
 | `resolve-merge-conflicts` | Resolves all conflicts in an ongoing rebase or merge and automatically continues it to completion. |
 | `swift-concurrency` | Guides Swift concurrency implementation, diagnostics, migration, and testing using the target's actual isolation and compiler settings. |
 | `tdd` | Implements an analyzed task through observable behavior, one red-green-refactor slice at a time. |

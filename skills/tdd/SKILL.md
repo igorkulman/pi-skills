@@ -13,6 +13,7 @@ Implement the task already established in the conversation using test-driven dev
 
 - Consume the latest `analyze` findings and testing approach when present. Do not ask the user to restate the ticket or approve routine red-green-refactor cycles.
 - Ask only when a missing product decision or material architecture choice prevents a safe implementation. Group currently known blocking questions, then resume automatically after the answer.
+- Read and apply [pragmatic-testing](../pragmatic-testing/SKILL.md) before choosing or changing tests. It supplies the test-quality rules; this skill retains the test-first execution order.
 - Test observable behavior through the highest practical stable seam, not private implementation details.
 - Work in vertical slices: one behavior, one failing test, the minimum implementation, then refactor while green.
 - Preserve unrelated changes and follow repository guidance.
@@ -24,7 +25,8 @@ Use the analysis to identify:
 
 - the acceptance criterion being implemented
 - the recommended test seam
-- the first observable behavior
+- the first observable behavior and a plausible production mistake the test must detect
+- the independent expected result and distinct protection the test adds
 - the focused test target and execution route
 - any part requiring non-automated verification
 
@@ -32,7 +34,7 @@ If no analysis is present but the task is clear, inspect only enough code and te
 
 For a partially testable task, apply TDD only to the behavior with a valid seam. Retain the analysis's preview, hardware, manual, or other verification for the remainder.
 
-Completion criterion: one narrow observable behavior and the test that should prove it are identified without an unresolved requirement or seam decision.
+Completion criterion: one narrow observable behavior, a plausible regression, and the test that should detect it are identified without an unresolved requirement or seam decision.
 
 ## 2. Red
 
@@ -44,7 +46,7 @@ A useful test:
 - exercises a public or otherwise stable interface
 - uses an independent expected result from the requirement or a known example
 - fails if the behavior regresses while surviving internal refactoring
-- mocks or fakes only true system boundaries such as network APIs, persistence, time, randomness, or hardware
+- uses doubles only for collaborators outside the behavior under test, such as network APIs, persistence, time, randomness, or hardware; the double must not implement the product rule being asserted
 
 Prefer existing test helpers and boundary fakes. Do not introduce a new abstraction solely to make a test possible unless the analyzed plan already established that seam.
 
@@ -58,7 +60,9 @@ Implement only enough production behavior to satisfy the current test. Avoid spe
 
 Run the same focused test through the same execution route until it passes. Fix failures within the current slice without asking for routine confirmation.
 
-Completion criterion: the focused test passes and no requirement beyond the current slice was implemented speculatively.
+When the test's ability to detect the named plausible mistake remains uncertain, follow `pragmatic-testing`'s safe targeted-mutation procedure, confirm the intended assertion fails, restore the exact pre-mutation content, and re-run green. The initial red proves missing behavior, not necessarily sensitivity to a subtly wrong implementation.
+
+Completion criterion: the focused test passes, protects the identified contract, and no requirement beyond the current slice was implemented speculatively.
 
 ## 4. Refactor
 
@@ -83,7 +87,8 @@ Report:
 
 - behaviors implemented
 - tests added or changed
-- red and green evidence
+- red and green evidence, plus the plausible regressions protected
+- targeted mutation results when used, or any uncertainty about test effectiveness
 - execution route used
 - broader verification and any manual/device verification still needed
 - residual risks

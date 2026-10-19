@@ -18,6 +18,7 @@
 - For code reviews, branch reviews, local-change reviews, and GitLab MR reviews, use `code-review` and remain read-only.
 - For GitLab access, use `gitlab-glab` and the authenticated `glab` CLI.
 - For MR reviewer-comment work, use `mr-comment-resolution`.
+- Before adding, changing, reviewing, or deleting tests or test doubles, use `pragmatic-testing`, whether working test-first or through normal implementation. During review or investigation, apply it read-only.
 - For commits, use `git-commit`.
 - For Figma links, design inspection, implementation from designs, and explicitly requested Figma edits, use `figma` with the project-enabled native Figma MCP. Local implementation does not authorize Figma writes.
 - For Xcode-specific builds, tests, diagnostics, SwiftUI previews, Apple documentation, and Swift snippets, prefer the available Xcode MCP tools.
