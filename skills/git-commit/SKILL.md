@@ -40,6 +40,8 @@ git log --oneline -n 20
 
 Use recent history to learn the repository's message tone and granularity. Determine whether existing staged changes belong to the request.
 
+Check for enforced message conventions before writing a message: `git config core.hooksPath`, a `commit-msg` hook there or in `.git/hooks`, and contribution guidelines. An enforced format counts as a repository instruction and overrides this skill's defaults.
+
 ### 2. Plan commits
 
 Group changes by intent. If multiple reasonable groupings exist or unrelated changes are present, summarize the proposed groups and ask before staging.
@@ -57,6 +59,8 @@ git add -p -- path/to/file
 
 Avoid `git add .` and `git add -A` unless inspection confirms every changed path belongs to the same commit.
 
+Run staging as its own command and stop if it fails. Never chain `git commit` after `git add` with `;`, because a failed pathspec would commit whatever was already staged. Paths moved by `git mv` or deleted no longer exist in the worktree: they are already staged, or stage them with `git add -A -- <old-path> <new-path>`.
+
 Before each commit, verify:
 
 ```bash
@@ -65,7 +69,7 @@ git diff --cached --stat
 git diff --cached
 ```
 
-Do not commit a staged diff containing unrelated changes.
+Do not commit a staged diff containing unrelated changes. Compare the staged name-status with the intended file list; a missing intended path means staging failed.
 
 ### 4. Write the message
 
@@ -94,6 +98,8 @@ EOF
 ```
 
 This prevents `$()`, backticks, variables, and other message text from being evaluated by the shell without creating a shared temporary file. Do not add AI attribution or co-author trailers.
+
+If the commit fails, for example because a hook rejects it or a required signing key is unavailable, report the error and leave the staged changes in place. Do not bypass hooks or signing with `--no-verify` or `--no-gpg-sign` unless the user explicitly asks. Retry the same commit when the user reports the cause is fixed.
 
 Then inspect the result:
 
