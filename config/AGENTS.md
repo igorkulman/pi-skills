@@ -25,6 +25,7 @@
 - Fall back to shell `xcodebuild` only when Xcode MCP is unavailable or does not expose the required operation. A real build or test failure reported by Xcode MCP is not a reason to rerun the same check through the shell, and the two routes must not run concurrently.
 - When invoking shell `xcodebuild`, use `xcodebuild-xcsift` and pipe output through `xcsift`.
 - Access GitHub resources through authenticated `gh`, not unauthenticated web fetching. If access fails, check `gh auth status` rather than falling back to public web access.
+- When an MCP or tool result is large, such as a long document, log, or test list, write it to a file under `/tmp` and search it with `rg`. Do not `store()` it or print it into the context in chunks.
 
 ## Verification
 
