@@ -98,7 +98,13 @@ Global Pi workflow and safety instructions live in `config/AGENTS.md`. Reusable 
 
 ## Verification
 
-See the [Pi upgrade checklist](docs/pi-upgrade-checklist.md) for offline regressions, opt-in live provider/codemode/Xcode probes, Apple export provenance, and verification boundaries. Live checks are separate from app builds, tests, previews, and device behavior.
+Skills adapted from Xcode's exported agent skills keep the Apple originals as `upstream.md`, with provenance in each skill's `EXPORT.md`. After an Xcode update, compare them with a fresh export:
+
+```bash
+scripts/check-xcode-skill-exports.sh
+```
+
+It exits non-zero when an Apple skill or reference changed, so the adapted skill needs review.
 
 ## License
 
